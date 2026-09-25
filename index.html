@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta name="format-detection" content="telephone=no,email=no,address=no" />
+<meta name="theme-color" content="#7c0b1e" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+<!-- ===== 微信聊天里显示的标题和描述（改这里就能改分享卡片的文字）===== -->
+<title>谢谢您的红包 ❤️</title>
+<meta name="description" content="收下了您的红包，也收下了您的惦记。谢谢您！" />
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23c0122b'/%3E%3Ccircle cx='32' cy='34' r='13' fill='%23f7d774'/%3E%3C/svg%3E" />
+
+<style>
+/* ============================================================
+   感谢红包页 · 单文件版
+   所有样式/脚本都在这一个文件里，不需要联网加载任何资源，
+   所以在微信内置浏览器里也能正常打开。
+   ============================================================ */
+
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+  background:#5e0a16;
+  color:#fff;
+  overflow:hidden;
+  -webkit-text-size-adjust:100%;
+  text-rendering:optimizeLegibility;
+}
+
+/* ---------- 背景 ---------- */
+.stage{
+  position:fixed;inset:0;
+  /* 用可滚动容器，保证小屏手机上文字变长时也能上下滑动，不会被裁掉 */
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  background:
+    radial-gradient(120% 78% at 50% 0%, #b21430 0%, #8d0e22 42%, #56060f 100%);
+}
+/* 顶部柔光 + 底部暗角 */
+.stage::before{
+  content:"";position:absolute;left:50%;top:-22vh;width:150vw;height:80vh;
+  transform:translateX(-50%);
+  background:radial-gradient(closest-side, rgba(255,214,120,.30), rgba(255,214,120,0) 72%);
+  pointer-events:none;
+}
+.stage::after{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(120% 70% at 50% 118%, rgba(0,0,0,.55), rgba(0,0,0,0) 68%);
+  pointer-events:none;
+}
+/* 飘落的小光点，纯装饰 */
+.dust{position:absolute;inset:0;overflow:hidden;pointer-events:none;opacity:.75}
+.dust i{
+  position:absolute;top:-8vh;width:6px;height:6px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff8dc,#f7d774 60%,rgba(247,215,116,0));
+  animation:fall linear infinite;
+}
+@keyframes fall{
+  0%{transform:translate3d(0,-10vh,0) scale(.6);opacity:0}
+  12%{opacity:.9}
+  100%{transform:translate3d(var(--dx,10px),112vh,0) scale(1);opacity:0}
+}
+
+/* ---------- 场景切换 ---------- */
+.scene{
+  position:relative;z-index:2;
+  width:100%;max-width:420px;min-height:100%;
+  margin:0 auto;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:calc(env(safe-area-inset-top) + 30px) 20px calc(env(safe-area-inset-bottom) + 30px);
+  transition:opacity .45s ease,transform .45s ease;
+}
+.scene[hidden]{display:none}
+.scene.is-out{opacity:0;transform:scale(.94);pointer-events:none}
+
+/* ---------- 场景一：红包 ---------- */
+.eyebrow{
+  margin:0 0 22px;
+  font-size:15px;letter-spacing:.14em;
+  color:rgba(255,236,196,.82);
+  text-align:center;
+}
+.packet-wrap{position:relative;display:grid;place-items:center}
+.halo{
+  position:absolute;width:min(92vw,380px);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(closest-side, rgba(255,210,110,.34), rgba(255,210,110,0) 70%);
+  animation:breathe 3.4s ease-in-out infinite;pointer-events:none;
+}
+@keyframes breathe{0%,100%{transform:scale(.86);opacity:.55}50%{transform:scale(1.06);opacity:1}}
+
+.packet{
+  position:relative;display:block;
+  width:min(62vw,240px);
+  aspect-ratio:3/4.35;
+  border:0;padding:0;cursor:pointer;background:none;
+  border-radius:16px;
+  transform-style:preserve-3d;
+  transition:transform .28s cubic-bezier(.2,.9,.3,1.2);
+  animation:float 3.6s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(-6px)}50%{transform:translateY(6px)}}
+.packet.is-shake{animation:shake .5s ease-in-out}
+@keyframes shake{
+  0%,100%{transform:translateX(0) rotate(0)}
+  15%{transform:translateX(-9px) rotate(-3deg)}
+  35%{transform:translateX(8px) rotate(3deg)}
+  55%{transform:translateX(-6px) rotate(-2deg)}
+  75%{transform:translateX(5px) rotate(2deg)}
+}
+
+.packet__body{
+  position:absolute;inset:0;border-radius:16px;
+  background:linear-gradient(168deg,#e63950 0%,#cf1832 46%,#a80f26 100%);
+  box-shadow:
+    0 22px 44px -14px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -2px 0 rgba(0,0,0,.22);
+  overflow:hidden;
+}
+/* 红包上的斜向高光 */
+.packet__body::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(115deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 42%);
+  pointer-events:none;
+}
+/* 盖子 */
+.packet__lid{
+  position:absolute;left:0;right:0;top:0;height:58%;
+  border-radius:16px 16px 42% 42% / 16px 16px 16% 16%;
+  background:linear-gradient(168deg,#f04a5f 0%,#d81f39 55%,#bd132c 100%);
+  box-shadow:0 8px 18px -6px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.35);
+  transform-origin:50% 100%;
+  transition:transform .72s cubic-bezier(.55,-0.3,.35,1.25),opacity .5s ease .12s;
+  backface-visibility:hidden;
+}
+.packet.is-open .packet__lid{transform:rotateX(-118deg) translateY(-6%);opacity:0}
+.packet.is-open{animation:none;transform:translateY(0) scale(1.03)}
+
+/* 金色印章 */
+.seal{
+  position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);
+  width:34%;aspect-ratio:1;border-radius:50%;
+  display:grid;place-items:center;
+  background:radial-gradient(circle at 34% 28%,#fff3cf 0%,#f7d774 42%,#d4a03a 72%,#a97a1e 100%);
+  box-shadow:
+    0 6px 16px -4px rgba(0,0,0,.45),
+    inset 0 -3px 6px rgba(120,80,0,.35),
+    inset 0 2px 4px rgba(255,255,255,.6);
+  transition:transform .6s cubic-bezier(.2,.9,.3,1.3),opacity .4s ease;
+}
+.seal::before{
+  content:"";position:absolute;inset:8%;border-radius:50%;
+  border:1.5px solid rgba(150,100,10,.42);
+}
+.seal b{
+  font-size:min(9vw,34px);font-weight:700;color:#b0122a;
+  font-family:"STKaiti","KaiTi","Songti SC",serif;
+  line-height:1;transform:translateY(-2%);
+  text-shadow:0 1px 0 rgba(255,255,255,.5);
+}
+.packet.is-open .seal{transform:translate(-50%,-50%) scale(.72);opacity:0}
+
+.tap-hint{
+  margin:26px 0 0;font-size:14px;letter-spacing:.1em;
+  color:rgba(255,236,196,.75);
+  animation:blink 2.2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:.5}50%{opacity:1}}
+
+/* ---------- 金币爆发 ---------- */
+.coins{position:absolute;left:50%;top:50%;width:0;height:0;z-index:3;pointer-events:none}
+.coins i{
+  position:absolute;left:0;top:0;width:15px;height:15px;margin:-7.5px 0 0 -7.5px;
+  border-radius:50%;
+  background:radial-gradient(circle at 34% 28%,#fffbe6,#f7d774 46%,#c9962f 100%);
+  box-shadow:0 0 12px rgba(255,214,120,.85);
+  animation:fly var(--dur) cubic-bezier(.18,.72,.32,1) forwards;
+}
+@keyframes fly{
+  0%{transform:translate(0,0) scale(.35);opacity:0}
+  10%{opacity:1}
+  100%{transform:translate(var(--tx),var(--ty)) scale(var(--sc)) rotate(var(--rot));opacity:0}
+}
+
+/* ---------- 场景二：感谢卡 ---------- */
+.card{
+  position:relative;width:100%;
+  padding:38px 26px 30px;
+  border-radius:24px;
+  color:#4a1010;
+  background:linear-gradient(178deg,#fffdf7 0%,#fff4e2 100%);
+  box-shadow:0 30px 60px -22px rgba(0,0,0,.65), 0 0 0 1px rgba(247,215,116,.55) inset;
+  opacity:0;transform:translateY(34px) scale(.94);
+}
+.scene.is-in .card{animation:cardIn .78s cubic-bezier(.16,.9,.3,1.05) forwards}
+@keyframes cardIn{to{opacity:1;transform:translateY(0) scale(1)}}
+.card::before{
+  content:"";position:absolute;inset:9px;border-radius:17px;
+  border:1px solid rgba(201,150,47,.42);pointer-events:none;
+}
+.card__seal{
+  position:absolute;left:50%;top:-26px;transform:translateX(-50%);
+  width:54px;height:54px;border-radius:50%;
+  display:grid;place-items:center;
+  font-size:24px;font-weight:700;color:#fff4d8;
+  font-family:"STKaiti","KaiTi","Songti SC",serif;
+  background:linear-gradient(160deg,#d8203a,#a80f26);
+  box-shadow:0 10px 20px -8px rgba(140,10,30,.75), inset 0 0 0 2px rgba(255,226,160,.55);
+}
+.card__to{
+  margin:14px 0 18px;text-align:center;font-size:14px;letter-spacing:.08em;color:#a2603a;
+}
+.card__to b{color:#b0122a;font-weight:600}
+.card__title{
+  margin:0 0 16px;text-align:center;
+  font-size:25px;line-height:1.35;font-weight:700;letter-spacing:.02em;color:#a80f26;
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",serif;
+}
+.card__rule{
+  width:56px;height:2px;margin:0 auto 18px;border-radius:2px;
+  background:linear-gradient(90deg,rgba(201,150,47,0),#c9962f,rgba(201,150,47,0));
+}
+.card__msg{
+  margin:0 0 16px;font-size:16.5px;line-height:1.95;text-align:center;
+  color:#5a2320;white-space:pre-line;
+}
+.card__bless{
+  margin:0;font-size:15.5px;line-height:2.05;text-align:center;
+  color:#7b4a2c;white-space:pre-line;
+}
+.card__from{
+  margin:22px 0 0;text-align:right;font-size:14.5px;color:#a2603a;white-space:pre-line;
+}
+.card__foot{
+  margin:26px 0 0;text-align:center;font-size:12px;letter-spacing:.16em;color:rgba(162,96,58,.6);
+}
+.again{
+  margin:22px 0 0;padding:12px 26px;
+  border:1px solid rgba(255,226,160,.5);border-radius:999px;
+  background:rgba(255,255,255,.08);color:#ffe9bd;
+  font-size:14px;letter-spacing:.08em;cursor:pointer;
+  backdrop-filter:blur(4px);
+  transition:transform .2s ease,background .2s ease;
+}
+.again:active{transform:scale(.96);background:rgba(255,255,255,.16)}
+
+/* 尊重"减少动态效果"的系统设置 */
+@media (prefers-reduced-motion:reduce){
+  .packet,.halo,.tap-hint,.dust i{animation:none!important}
+  .scene,.card{transition:none!important}
+}
+/* 小屏微调 */
+@media (max-height:640px){
+  .eyebrow{margin-bottom:14px;font-size:14px}
+  .card{padding:32px 22px 24px}
+  .card__title{font-size:22px}
+  .card__msg{font-size:15.5px;line-height:1.85}
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="dust" id="dust" aria-hidden="true"></div>
+
+  <!-- ===================== 场景一：待拆的红包 ===================== -->
+  <section class="scene" id="scenePacket">
+    <p class="eyebrow">有个人，给你发了个红包</p>
+
+    <div class="packet-wrap">
+      <div class="halo" aria-hidden="true"></div>
+      <button class="packet" id="packet" aria-label="点击拆开红包">
+        <span class="packet__body"></span>
+        <span class="packet__lid"></span>
+        <span class="seal"><b>谢</b></span>
+      </button>
+    </div>
+
+    <p class="tap-hint">轻点红包 · 查收心意</p>
+  </section>
+
+  <!-- ===================== 场景二：感谢的话 ===================== -->
+  <section class="scene" id="sceneThanks" hidden>
+    <div class="card">
+      <div class="card__seal" aria-hidden="true">谢</div>
+      <p class="card__to">致 <b id="tTo">亲爱的您</b></p>
+      <h1 class="card__title" id="tTitle">谢谢您的红包</h1>
+      <div class="card__rule" aria-hidden="true"></div>
+      <p class="card__msg" id="tMsg"></p>
+      <p class="card__bless" id="tBless"></p>
+      <p class="card__from" id="tFrom"></p>
+      <p class="card__foot">红 包 已 收 · 心 意 已 领</p>
+    </div>
+    <button class="again" id="again">再看一次</button>
+  </section>
+
+  <div class="coins" id="coins" aria-hidden="true"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+     ① 想改文字，只改下面这一段就够了
+     ============================================================ */
+  var CONFIG = {
+    // 谁发的红包（称呼）
+    to: '亲爱的您',
+
+    // 卡片大标题
+    title: '谢谢您的红包',
+
+    // 正文：\n 表示换行
+    msg: '红包已经收到啦～\n收到的不只是这份心意，更是您一直以来的惦记和疼爱。',
+
+    // 祝福语
+    bless: '祝您身体健康，万事顺意，\n天天都有好心情，岁岁都有小惊喜！',
+
+    // 落款（不想要就留空字符串）
+    from: '—— 收下红包的我 敬上'
+  };
+
+  /* 也支持用网址参数临时改文字，不用动文件：
+     index.html?to=姑姑&from=小明
+     可用：to / title / msg / bless / from        */
+  try {
+    var q = new URLSearchParams(location.search);
+    ['to', 'title', 'msg', 'bless', 'from'].forEach(function (k) {
+      if (q.has(k)) CONFIG[k] = q.get(k);
+    });
+  } catch (e) { /* 老浏览器忽略即可 */ }
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // 把文字写进页面
+  $('tTo').textContent = CONFIG.to;
+  $('tTitle').textContent = CONFIG.title;
+  $('tMsg').textContent = CONFIG.msg;
+  $('tBless').textContent = CONFIG.bless;
+  $('tFrom').textContent = CONFIG.from;
+  $('tFrom').style.display = CONFIG.from ? '' : 'none';
+
+  document.title = '谢谢' + (CONFIG.to === '亲爱的您' ? '您' : CONFIG.to) + '的红包 ❤️';
+
+  /* ============================================================
+     ② 背景飘落的小光点
+     ============================================================ */
+  (function dust() {
+    var box = $('dust'), n = 18, html = '';
+    for (var i = 0; i < n; i++) {
+      var s = (4 + Math.random() * 5).toFixed(1);
+      html += '<i style="left:' + (Math.random() * 100).toFixed(2) + '%;'
+        + 'width:' + s + 'px;height:' + s + 'px;'
+        + 'animation-duration:' + (7 + Math.random() * 7).toFixed(2) + 's;'
+        + 'animation-delay:-' + (Math.random() * 9).toFixed(2) + 's;'
+        + '--dx:' + ((Math.random() * 90 - 45) | 0) + 'px"></i>';
+    }
+    box.innerHTML = html;
+  })();
+
+  /* ============================================================
+     ③ 拆红包音效（用 Web Audio 现场合成，不用下载音频文件）
+     ============================================================ */
+  function playChime() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      var ctx = new AC();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      var t0 = ctx.currentTime;
+      // 两声清脆的"叮——"，像金币落袋
+      [[1318.5, 0], [1975.5, 0.11]].forEach(function (p) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = p[0];
+        gain.gain.setValueAtTime(0.0001, t0 + p[1]);
+        gain.gain.exponentialRampToValueAtTime(0.22, t0 + p[1] + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + p[1] + 0.9);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t0 + p[1]);
+        osc.stop(t0 + p[1] + 1.0);
+      });
+
+      // 一点"沙沙"的金币声
+      var len = Math.floor(ctx.sampleRate * 0.35);
+      var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      var d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) {
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
+      }
+      var src = ctx.createBufferSource();
+      var bg = ctx.createGain();
+      var bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 5200; bp.Q.value = 1.1;
+      bg.gain.value = 0.1;
+      src.buffer = buf;
+      src.connect(bp).connect(bg).connect(ctx.destination);
+      src.start(t0 + 0.02);
+
+      setTimeout(function () { try { ctx.close(); } catch (e) {} }, 2500);
+    } catch (e) { /* 静音环境/不支持就安静地跳过 */ }
+  }
+
+  /* ============================================================
+     ④ 金币四散
+     ============================================================ */
+  function burstCoins() {
+    var box = $('coins'), n = 28, html = '';
+    for (var i = 0; i < n; i++) {
+      var ang = (Math.PI * 2 * i) / n + Math.random() * 0.5;
+      var dist = 90 + Math.random() * 190;
+      html += '<i style="'
+        + '--tx:' + (Math.cos(ang) * dist).toFixed(1) + 'px;'
+        + '--ty:' + (Math.sin(ang) * dist - 40).toFixed(1) + 'px;'
+        + '--sc:' + (0.5 + Math.random() * 0.9).toFixed(2) + ';'
+        + '--rot:' + ((Math.random() * 720 - 360) | 0) + 'deg;'
+        + '--dur:' + (0.95 + Math.random() * 0.75).toFixed(2) + 's;'
+        + 'animation-delay:' + (Math.random() * 0.12).toFixed(2) + 's"></i>';
+    }
+    box.innerHTML = html;
+    setTimeout(function () { box.innerHTML = ''; }, 2400);
+  }
+
+  /* ============================================================
+     ⑤ 交互：拆包 → 展示感谢
+     ============================================================ */
+  var packet = $('packet');
+  var sPacket = $('scenePacket');
+  var sThanks = $('sceneThanks');
+  var opened = false;
+
+  function openPacket() {
+    if (opened) return;
+    opened = true;
+
+    // 先清掉"跟随手指倾斜"留下的内联样式，否则会盖住打开动画
+    packet.style.animation = '';
+    packet.style.transform = '';
+
+    playChime();
+
+    packet.classList.add('is-shake');
+    setTimeout(function () {
+      packet.classList.remove('is-shake');
+      packet.classList.add('is-open');
+      burstCoins();
+
+      setTimeout(function () {
+        sPacket.classList.add('is-out');
+        setTimeout(function () {
+          sPacket.hidden = true;
+          sThanks.hidden = false;
+          // 触发进场动画
+          void sThanks.offsetWidth;
+          sThanks.classList.add('is-in');
+        }, 420);
+      }, 520);
+    }, 520);
+  }
+
+  packet.addEventListener('click', openPacket);
+
+  // 点空白处也能拆（照顾手小的）；感谢卡出现后就不再响应
+  $('stage').addEventListener('click', function (e) {
+    if (opened || sPacket.hidden) return;
+    if (packet.contains(e.target)) return;
+    openPacket();
+  });
+
+  $('again').addEventListener('click', function (e) {
+    // 阻止冒泡，否则会立刻被上面的"点任意处拆红包"重新触发
+    e.stopPropagation();
+    opened = false;
+    sThanks.classList.remove('is-in');
+    sThanks.hidden = true;
+    sPacket.hidden = false;
+    sPacket.classList.remove('is-out');
+    packet.classList.remove('is-open');
+  });
+
+  // 手指/鼠标划过时红包轻微倾斜，更有手感
+  if (window.PointerEvent && window.matchMedia &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var wrap = document.querySelector('.packet-wrap');
+    wrap.addEventListener('pointermove', function (e) {
+      if (opened) return;
+      var r = wrap.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width - 0.5;
+      var y = (e.clientY - r.top) / r.height - 0.5;
+      // 注意：CSS 动画的优先级高于内联 transform，
+      // 必须先把 animation 去掉，倾斜才会生效
+      packet.style.animation = 'none';
+      packet.style.transform = 'rotateY(' + (x * 16).toFixed(1) + 'deg) rotateX('
+        + (-y * 14).toFixed(1) + 'deg)';
+    });
+    wrap.addEventListener('pointerleave', function () {
+      if (opened) return;
+      packet.style.animation = '';
+      packet.style.transform = '';
+    });
+  }
+})();
+</script>
+</body>
+</html>
