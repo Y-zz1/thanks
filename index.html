@@ -34,7 +34,8 @@ body{
 
 /* ---------- 背景 ---------- */
 .stage{
-  position:fixed;inset:0;
+  /* 老 iOS(<14.1) 不认 inset 简写，写成四条边更保险 */
+  position:fixed;top:0;right:0;bottom:0;left:0;
   /* 用可滚动容器，保证小屏手机上文字变长时也能上下滑动，不会被裁掉 */
   overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
@@ -49,21 +50,22 @@ body{
   pointer-events:none;
 }
 .stage::after{
-  content:"";position:absolute;inset:0;
+  content:"";position:absolute;top:0;right:0;bottom:0;left:0;
   background:radial-gradient(120% 70% at 50% 118%, rgba(0,0,0,.55), rgba(0,0,0,0) 68%);
   pointer-events:none;
 }
 /* 飘落的小光点，纯装饰 */
-.dust{position:absolute;inset:0;overflow:hidden;pointer-events:none;opacity:.75}
+.dust{position:absolute;top:0;right:0;bottom:0;left:0;overflow:hidden;pointer-events:none;opacity:.75}
 .dust i{
   position:absolute;top:-8vh;width:6px;height:6px;border-radius:50%;
   background:radial-gradient(circle at 35% 30%,#fff8dc,#f7d774 60%,rgba(247,215,116,0));
   animation:fall linear infinite;
 }
+/* 垂直下落。故意不用 CSS 变量——老 Safari 对 keyframes 里的 var() 支持不可靠 */
 @keyframes fall{
   0%{transform:translate3d(0,-10vh,0) scale(.6);opacity:0}
   12%{opacity:.9}
-  100%{transform:translate3d(var(--dx,10px),112vh,0) scale(1);opacity:0}
+  100%{transform:translate3d(0,112vh,0) scale(1);opacity:0}
 }
 
 /* ---------- 场景切换 ---------- */
@@ -72,6 +74,8 @@ body{
   width:100%;max-width:420px;min-height:100%;
   margin:0 auto;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
+  /* 先给不认识 env() 的老浏览器一个普通内边距，再用刘海屏安全区覆盖 */
+  padding:30px 20px;
   padding:calc(env(safe-area-inset-top) + 30px) 20px calc(env(safe-area-inset-bottom) + 30px);
   transition:opacity .45s ease,transform .45s ease;
 }
@@ -87,7 +91,7 @@ body{
 }
 .packet-wrap{position:relative;display:grid;place-items:center}
 .halo{
-  position:absolute;width:min(92vw,380px);aspect-ratio:1;border-radius:50%;
+  position:absolute;width:min(92vw,380px);height:min(92vw,380px);border-radius:50%;
   background:radial-gradient(closest-side, rgba(255,210,110,.34), rgba(255,210,110,0) 70%);
   animation:breathe 3.4s ease-in-out infinite;pointer-events:none;
 }
@@ -96,7 +100,8 @@ body{
 .packet{
   position:relative;display:block;
   width:min(62vw,240px);
-  aspect-ratio:3/4.35;
+  /* 老 iOS(<15) 不认 aspect-ratio，直接写死高度兜底（240 × 4.35 ÷ 3 = 348） */
+  height:min(90vw,348px);
   border:0;padding:0;cursor:pointer;background:none;
   border-radius:16px;
   transform-style:preserve-3d;
@@ -114,7 +119,7 @@ body{
 }
 
 .packet__body{
-  position:absolute;inset:0;border-radius:16px;
+  position:absolute;top:0;right:0;bottom:0;left:0;border-radius:16px;
   background:linear-gradient(168deg,#e63950 0%,#cf1832 46%,#a80f26 100%);
   box-shadow:
     0 22px 44px -14px rgba(0,0,0,.6),
@@ -124,7 +129,7 @@ body{
 }
 /* 红包上的斜向高光 */
 .packet__body::after{
-  content:"";position:absolute;inset:0;
+  content:"";position:absolute;top:0;right:0;bottom:0;left:0;
   background:linear-gradient(115deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 42%);
   pointer-events:none;
 }
@@ -144,7 +149,8 @@ body{
 /* 金色印章 */
 .seal{
   position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);
-  width:34%;aspect-ratio:1;border-radius:50%;
+  /* 红包宽度的 34%，直接换算成 min(21vw,82px)，不依赖 aspect-ratio */
+  width:min(21vw,82px);height:min(21vw,82px);border-radius:50%;
   display:grid;place-items:center;
   background:radial-gradient(circle at 34% 28%,#fff3cf 0%,#f7d774 42%,#d4a03a 72%,#a97a1e 100%);
   box-shadow:
@@ -154,7 +160,7 @@ body{
   transition:transform .6s cubic-bezier(.2,.9,.3,1.3),opacity .4s ease;
 }
 .seal::before{
-  content:"";position:absolute;inset:8%;border-radius:50%;
+  content:"";position:absolute;top:8%;right:8%;bottom:8%;left:8%;border-radius:50%;
   border:1.5px solid rgba(150,100,10,.42);
 }
 .seal b{
@@ -179,12 +185,9 @@ body{
   border-radius:50%;
   background:radial-gradient(circle at 34% 28%,#fffbe6,#f7d774 46%,#c9962f 100%);
   box-shadow:0 0 12px rgba(255,214,120,.85);
-  animation:fly var(--dur) cubic-bezier(.18,.72,.32,1) forwards;
-}
-@keyframes fly{
-  0%{transform:translate(0,0) scale(.35);opacity:0}
-  10%{opacity:1}
-  100%{transform:translate(var(--tx),var(--ty)) scale(var(--sc)) rotate(var(--rot));opacity:0}
+  /* 兜底：万一动画没跑起来，金币也不会堆在屏幕中间 */
+  opacity:0;
+  /* 每枚金币的轨迹由 JS 单独生成 keyframes，不用 CSS 变量 */
 }
 
 /* ---------- 场景二：感谢卡 ---------- */
@@ -200,7 +203,7 @@ body{
 .scene.is-in .card{animation:cardIn .78s cubic-bezier(.16,.9,.3,1.05) forwards}
 @keyframes cardIn{to{opacity:1;transform:translateY(0) scale(1)}}
 .card::before{
-  content:"";position:absolute;inset:9px;border-radius:17px;
+  content:"";position:absolute;top:9px;right:9px;bottom:9px;left:9px;border-radius:17px;
   border:1px solid rgba(201,150,47,.42);pointer-events:none;
 }
 .card__seal{
@@ -245,6 +248,7 @@ body{
   background:rgba(255,255,255,.08);color:#ffe9bd;
   font-size:14px;letter-spacing:.08em;cursor:pointer;
   backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
   transition:transform .2s ease,background .2s ease;
 }
 .again:active{transform:scale(.96);background:rgba(255,255,255,.16)}
@@ -262,6 +266,8 @@ body{
   .card__msg{font-size:15.5px;line-height:1.85}
 }
 </style>
+<!-- 金币轨迹的 keyframes 由 JS 动态写进这里 -->
+<style id="fx"></style>
 </head>
 <body>
 
@@ -358,8 +364,7 @@ body{
       html += '<i style="left:' + (Math.random() * 100).toFixed(2) + '%;'
         + 'width:' + s + 'px;height:' + s + 'px;'
         + 'animation-duration:' + (7 + Math.random() * 7).toFixed(2) + 's;'
-        + 'animation-delay:-' + (Math.random() * 9).toFixed(2) + 's;'
-        + '--dx:' + ((Math.random() * 90 - 45) | 0) + 'px"></i>';
+        + 'animation-delay:-' + (Math.random() * 9).toFixed(2) + 's"></i>';
     }
     box.innerHTML = html;
   })();
@@ -413,20 +418,36 @@ body{
      ④ 金币四散
      ============================================================ */
   function burstCoins() {
-    var box = $('coins'), n = 28, html = '';
+    var box = $('coins'), n = 28, html = '', css = '';
     for (var i = 0; i < n; i++) {
       var ang = (Math.PI * 2 * i) / n + Math.random() * 0.5;
       var dist = 90 + Math.random() * 190;
-      html += '<i style="'
-        + '--tx:' + (Math.cos(ang) * dist).toFixed(1) + 'px;'
-        + '--ty:' + (Math.sin(ang) * dist - 40).toFixed(1) + 'px;'
-        + '--sc:' + (0.5 + Math.random() * 0.9).toFixed(2) + ';'
-        + '--rot:' + ((Math.random() * 720 - 360) | 0) + 'deg;'
-        + '--dur:' + (0.95 + Math.random() * 0.75).toFixed(2) + 's;'
-        + 'animation-delay:' + (Math.random() * 0.12).toFixed(2) + 's"></i>';
+      var tx = (Math.cos(ang) * dist).toFixed(1);
+      var ty = (Math.sin(ang) * dist - 40).toFixed(1);
+      var sc = (0.5 + Math.random() * 0.9).toFixed(2);
+      var rot = (Math.random() * 720 - 360) | 0;
+      var dur = (0.95 + Math.random() * 0.75).toFixed(2);
+      var delay = (Math.random() * 0.12).toFixed(2);
+      var name = 'coinFly' + i;
+
+      // 给每枚金币单独生成一条 keyframes，数值直接写死。
+      // 不用"在 @keyframes 里引用 CSS 变量"——老版本 iOS Safari 对这个支持不可靠，金币会一动不动。
+      css += '@keyframes ' + name + '{'
+        + '0%{transform:translate(0,0) scale(.35);opacity:0}'
+        + '10%{opacity:1}'
+        + '100%{transform:translate(' + tx + 'px,' + ty + 'px) scale(' + sc
+        + ') rotate(' + rot + 'deg);opacity:0}}';
+
+      html += '<i style="animation:' + name + ' ' + dur
+        + 's cubic-bezier(.18,.72,.32,1) ' + delay + 's both"></i>';
     }
+    $('fx').textContent = css;
     box.innerHTML = html;
-    setTimeout(function () { box.innerHTML = ''; }, 2400);
+
+    setTimeout(function () {
+      box.innerHTML = '';
+      $('fx').textContent = '';
+    }, 2400);
   }
 
   /* ============================================================
